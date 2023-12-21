@@ -1,23 +1,22 @@
-# Notes
+# Disclaimers
 # Any method of restarting the script from within the script will change a few automatic variables, nothing you can do about it. There is no way to have a totally pure script restart besides actually starting a new instance.
 # The headers of most tables output to the console only once (see https://github.com/PowerShell/PowerShell/issues/2228). I haven't found a way to reset that behavior, so you may not see headers again after a script restart unless you use out-host.
 
 
+# Method 1 (add to the end of your script)
 
-# Method 1
+# Offer to restart the script https://github.com/JedHarb/Restart-Powershell-Script/blob/main/Restart-PSScript.ps1
+if ((Read-Host "`nEnter Y to restart this script") -eq "Y") {.$PSCommandPath}
 
-# End of script
-if ((Read-Host "`nEnter Y to restart this script") -eq "Y") {
-	.$PSCommandPath # Start the script from the beginning.
-}
-# Pro: very simple
-# Con: leaves all variables as they are. Depending on the script, restarting with some variables already set can cause issues.
+# Pro: Very simple
+# Con: Leaves all variables as they are. Depending on the script, restarting with already-set variables could cause an issue.
 
 
 
-# Method 2
+# Method 2 (add to the end of your script)
+# A more comprehensive reset, but more complex than Method 1.
 
-# End of script
+# Offer to restart the script https://github.com/JedHarb/Restart-Powershell-Script/blob/main/Restart-PSScript.ps1
 if ((Read-Host "`nEnter Y to restart this script") -eq "Y") {
 	# Reset most of the local automatic variables that started with powershell back to their initial values (some are read-only).
 	try {
@@ -29,7 +28,9 @@ if ((Read-Host "`nEnter Y to restart this script") -eq "Y") {
 
 	# Remove all additional variables created in this session.
 	try {
-		Remove-Variable -Name (Compare-Object (Get-Variable) ((& powershell "Get-Variable") | ConvertFrom-String -PropertyNames Name) -Property Name | Where-Object SideIndicator -eq "<=").Name -ErrorAction SilentlyContinue
+		Remove-Variable -Name (Compare-Object (Get-Variable) ((& powershell "Get-Variable") | 
+  		ConvertFrom-String -PropertyNames Name) -Property Name | 
+    		Where-Object SideIndicator -eq "<=").Name -ErrorAction SilentlyContinue
 	}
 	catch {}
 
@@ -39,26 +40,23 @@ if ((Read-Host "`nEnter Y to restart this script") -eq "Y") {
 
 	# The automatic variable $^ can't be manually removed, reset, or changed in any way (at least in all of my testing).
 	# It will become equal to the literal text 'try' at this point, and change with each command run from here (as usual).
-	
-	# Start the script from the beginning.
-	.$PSCommandPath
-}
-# More comprehensive but more complex than Method 1.
-# Pro: will reset (most) initial variables to their starting values, and remomve all additional variables created in the session.
-# Con: gets automatic variables from a NEW powershell session and attempts to set the CURRENT session variables to the same thing. It's unlikely, but possible, that (depending on your automatic variables) this is not the behavior you want. In that case, use Method 3.
-
-
-
-# Method 3
-
-# Start of script 
-# Give it a long variable name so it's unlikely to be used/overwritten in normal scripting
-if (!$AllInitialLocalPowerShellVariables) {
-	$AllInitialLocalPowerShellVariables = Get-Variable
+ 	
+	.$PSCommandPath # Start the script from the beginning.
 }
 
+# Pro: Will reset almost all initial variables to their starting values, and remomve all additional variables created in the session.
+# Con: Gets automatic variable values from a NEW powershell session and attempts to set the CURRENT session variables to the same thing. It's very unlikely that this isn't the behavior you want. In that case, use Method 3.
 
-# End of script
+
+
+# Method 3 (add the first line to the start of your script, and the rest to the end of your script)
+
+# Save all initial variables to a long name so it's unlikely to be used/overwritten in normal scripting
+if (!$AllInitialLocalPowerShellVariables) {$AllInitialLocalPowerShellVariables = Get-Variable}
+
+# Code goes here
+
+# Offer to restart the script https://github.com/JedHarb/Restart-Powershell-Script/blob/main/Restart-PSScript.ps1
 if ((Read-Host "`nEnter Y to restart this script") -eq "Y") {
 	# Reset most of the local automatic variables that started with powershell back to their initial values (some are read-only).
 	try {
@@ -84,5 +82,6 @@ if ((Read-Host "`nEnter Y to restart this script") -eq "Y") {
 	# Start the script from the beginning.
 	.$PSCommandPath
 }
-# Pro: avoids the Con in Method 2.
-# Con: requires a line of code at the very beginning of the script in addition to the ending block.
+
+# Pro: Avoids the Con in Method 2.
+# Con: Requires an additional line of code at the very beginning of the script.
